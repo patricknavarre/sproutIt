@@ -16,15 +16,16 @@ const Navbar = () => {
       }
 
       try {
+        console.log("Fetching user with token:", token);
         const response = await axios.get("/api/auth/user", {
           headers: {
             "x-auth-token": token,
-            "Content-Type": "application/json",
           },
         });
+        console.log("User data received:", response.data);
         setUser(response.data);
       } catch (err) {
-        console.error("Error fetching user:", err);
+        console.error("Error fetching user:", err.response || err);
         localStorage.removeItem("token");
       } finally {
         setIsLoading(false);
