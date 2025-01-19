@@ -1,5 +1,5 @@
-// Version 1.0.1 - Force new deployment
-import React, { useState, useEffect } from "react";
+// Version 1.0.2 - Optimize initial loading
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { format, addDays } from "date-fns";
@@ -440,6 +440,16 @@ const GardenPlanner = () => {
   const [bedDimensions, setBedDimensions] = useState({ width: 4, length: 8 });
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
+  // Memoize the static data to prevent unnecessary re-renders
+  const categories = useMemo(
+    () => ({
+      vegetables: VEGETABLE_CATEGORIES,
+      herbs: HERB_CATEGORIES,
+      fruits: FRUIT_CATEGORIES,
+    }),
+    []
+  );
 
   // Add resize listener
   useEffect(() => {
