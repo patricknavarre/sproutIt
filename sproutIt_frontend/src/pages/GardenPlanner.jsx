@@ -1281,6 +1281,10 @@ const GardenPlanner = () => {
             : "bg-white hover:bg-green-50"
         }`}
         onClick={() => handleSquareClick(squareIndex, bedIndex)}
+        onTouchStart={() =>
+          !isDragging && setHoveredSquare(`${bedIndex}-${squareIndex}`)
+        }
+        onTouchEnd={() => !isDragging && setHoveredSquare(null)}
         onDragOver={(e) => handleDragOver(e, `${bedIndex}-${squareIndex}`)}
         onDrop={(e) => handleDrop(e, `${bedIndex}-${squareIndex}`)}
         onDragEnter={() => setHoveredSquare(`${bedIndex}-${squareIndex}`)}
@@ -1292,7 +1296,7 @@ const GardenPlanner = () => {
       >
         {plantInSquare && (
           <>
-            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-all duration-300 flex gap-1">
+            <div className="absolute top-1 right-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 flex gap-1">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1303,12 +1307,12 @@ const GardenPlanner = () => {
                     currentName: plantInSquare.plantName,
                   });
                 }}
-                className="p-1.5 hover:bg-green-100 rounded-full z-10 transform hover:scale-110"
+                className="p-2 md:p-1.5 hover:bg-green-100 rounded-full z-10 transform hover:scale-110"
                 title="Edit plant name"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 text-green-600"
+                  className="h-5 w-5 md:h-4 md:w-4 text-green-600"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -1318,14 +1322,20 @@ const GardenPlanner = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleRemovePlant(x, y, bedIndex);
+                  if (
+                    window.confirm(
+                      "Are you sure you want to remove this plant?"
+                    )
+                  ) {
+                    handleRemovePlant(x, y, bedIndex);
+                  }
                 }}
-                className="p-1.5 hover:bg-red-100 rounded-full z-10 transform hover:rotate-90"
+                className="p-2 md:p-1.5 hover:bg-red-100 rounded-full z-10 transform hover:rotate-90"
                 title="Remove plant"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 text-red-500"
+                  className="h-5 w-5 md:h-4 md:w-4 text-red-500"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -1376,7 +1386,7 @@ const GardenPlanner = () => {
                 </div>
               )}
             </div>
-            {isHovered && getPlantTooltip(plantInSquare)}
+            {isHovered && !isMobileView && getPlantTooltip(plantInSquare)}
           </>
         )}
         {!plantInSquare && (
@@ -1623,7 +1633,10 @@ const GardenPlanner = () => {
               <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
                 <h3 className="text-lg font-medium">Select Plant</h3>
                 <button
-                  onClick={() => setShowMobileMenu(false)}
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    setSelectedPlantForPlacement(null);
+                  }}
                   className="p-2 hover:bg-gray-100 rounded-full"
                 >
                   <svg
@@ -1643,11 +1656,11 @@ const GardenPlanner = () => {
               </div>
               <div className="p-4">
                 {/* Plant Selection Tabs */}
-                <div className="flex gap-2 mb-6 overflow-x-auto">
+                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
                   <button
-                    className={`px-4 py-2 font-medium whitespace-nowrap ${
+                    className={`px-4 py-2 font-medium whitespace-nowrap rounded-lg ${
                       activeTab === "vegetables"
-                        ? "text-green-600 border-b-2 border-green-500"
+                        ? "bg-green-100 text-green-700"
                         : "text-gray-500 hover:text-green-600"
                     }`}
                     onClick={() => setActiveTab("vegetables")}
@@ -1655,9 +1668,9 @@ const GardenPlanner = () => {
                     Vegetables
                   </button>
                   <button
-                    className={`px-4 py-2 font-medium whitespace-nowrap ${
+                    className={`px-4 py-2 font-medium whitespace-nowrap rounded-lg ${
                       activeTab === "herbs"
-                        ? "text-green-600 border-b-2 border-green-500"
+                        ? "bg-green-100 text-green-700"
                         : "text-gray-500 hover:text-green-600"
                     }`}
                     onClick={() => setActiveTab("herbs")}
@@ -1665,9 +1678,9 @@ const GardenPlanner = () => {
                     Herbs
                   </button>
                   <button
-                    className={`px-4 py-2 font-medium whitespace-nowrap ${
+                    className={`px-4 py-2 font-medium whitespace-nowrap rounded-lg ${
                       activeTab === "fruits"
-                        ? "text-green-600 border-b-2 border-green-500"
+                        ? "bg-green-100 text-green-700"
                         : "text-gray-500 hover:text-green-600"
                     }`}
                     onClick={() => setActiveTab("fruits")}
@@ -1685,37 +1698,39 @@ const GardenPlanner = () => {
                         className="border-b border-gray-100 pb-4 last:border-0"
                       >
                         <div
-                          className="flex items-center justify-between cursor-pointer"
+                          className="flex items-center justify-between cursor-pointer p-2 hover:bg-gray-50 rounded-lg"
                           onClick={() => toggleCategory(category)}
                         >
                           <h3 className="text-sm font-medium text-gray-800">
                             {category}
                           </h3>
-                          <button className="p-1 hover:bg-gray-100 rounded-full">
-                            <span className="text-xl text-gray-500">
-                              {expandedCategories[category] ? "−" : "+"}
-                            </span>
-                          </button>
+                          <span className="text-xl text-gray-500">
+                            {expandedCategories[category] ? "−" : "+"}
+                          </span>
                         </div>
 
                         {expandedCategories[category] && (
-                          <div className="mt-2 grid grid-cols-2 gap-2">
+                          <div className="mt-2 grid grid-cols-2 gap-2 px-2">
                             {plants.map((plant) => (
                               <button
                                 key={plant.name}
-                                className={`text-left p-2 rounded-lg transition-colors ${
+                                className={`text-left p-3 rounded-lg transition-colors ${
                                   selectedPlant === plant.name
                                     ? "bg-green-100"
                                     : "hover:bg-green-50"
-                                }`}
+                                } active:bg-green-200`}
                                 onClick={() => {
                                   handlePlantClick(plant);
                                   setSelectedPlantForPlacement(plant);
                                   setShowMobileMenu(false);
                                 }}
                               >
-                                <span className="mr-2">{plant.emoji}</span>
-                                <span className="text-sm">{plant.name}</span>
+                                <span className="text-2xl block mb-1">
+                                  {plant.emoji}
+                                </span>
+                                <span className="text-sm font-medium">
+                                  {plant.name}
+                                </span>
                               </button>
                             ))}
                           </div>
