@@ -5,6 +5,9 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import GardenPlanner from "./pages/GardenPlanner";
+import PestAndDiseaseGuide from "./pages/PestAndDiseaseGuide";
+import RecipeSuggestions from "./pages/RecipeSuggestions";
+import SeedDatabase from "./pages/SeedDatabase";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Navbar from "./components/Navbar";
 
@@ -76,6 +79,45 @@ const router = createBrowserRouter([
     element: (
       <Layout>
         <GardenPlanner />
+      </Layout>
+    ),
+    errorElement: (
+      <Layout>
+        <ErrorBoundary />
+      </Layout>
+    ),
+  },
+  {
+    path: "/pest-disease-guide",
+    element: (
+      <Layout>
+        <PestAndDiseaseGuide />
+      </Layout>
+    ),
+    errorElement: (
+      <Layout>
+        <ErrorBoundary />
+      </Layout>
+    ),
+  },
+  {
+    path: "/recipe-suggestions",
+    element: (
+      <Layout>
+        <RecipeSuggestions />
+      </Layout>
+    ),
+    errorElement: (
+      <Layout>
+        <ErrorBoundary />
+      </Layout>
+    ),
+  },
+  {
+    path: "/seed-database",
+    element: (
+      <Layout>
+        <SeedDatabase />
       </Layout>
     ),
     errorElement: (
