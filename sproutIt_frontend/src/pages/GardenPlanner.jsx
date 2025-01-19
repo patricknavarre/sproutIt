@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { format, addDays } from "date-fns";
+import { CompanionPlantingAI } from "../components/CompanionPlantingAI";
 
 // Vegetable categories based on Johnny's Seeds
 const VEGETABLE_CATEGORIES = {
@@ -124,6 +125,12 @@ const PLANT_CARE_INFO = {
     sun: "Full sun",
     spacing: "2-3 inches apart",
     tips: "Thin seedlings, keep soil loose",
+  },
+  Radishes: {
+    water: "Keep soil consistently moist, about 1 inch per week",
+    sun: "Full sun to partial shade",
+    spacing: "2-3 inches apart, rows 12 inches apart",
+    tips: "Harvest when roots are about 1 inch in diameter, thin seedlings early for best growth",
   },
   // Herbs
   Basil: {
@@ -411,6 +418,18 @@ const COMPANION_PLANTING = {
       "Sweet Potatoes": "Good ground cover companion",
     },
   },
+  Radishes: {
+    companions: ["Lettuce", "Spinach", "Cucumber", "Beans", "Peas", "Carrots"],
+    avoid: ["Cabbage", "Cauliflower", "Brussels Sprouts", "Turnips"],
+    benefits: {
+      Lettuce: "Radishes help break up soil for lettuce roots",
+      Spinach: "Good space utilization, different root depths",
+      Cucumber: "Radishes deter cucumber beetles",
+      Beans: "Beans fix nitrogen that radishes need",
+      Peas: "Peas fix nitrogen and provide ground cover",
+      Carrots: "Radishes mark carrot rows and break up soil",
+    },
+  },
 };
 
 const GardenPlanner = () => {
@@ -434,6 +453,9 @@ const GardenPlanner = () => {
   const [newBedWidth, setNewBedWidth] = useState(4);
   const [newBedLength, setNewBedLength] = useState(8);
   const [editingPlant, setEditingPlant] = useState(null);
+  const [selectedPlantForAI, setSelectedPlantForAI] = useState(null);
+  const [availablePlants, setAvailablePlants] = useState([]);
+  const [bedDimensions, setBedDimensions] = useState({ width: 4, length: 8 });
 
   useEffect(() => {
     const fetchGarden = async () => {
@@ -570,6 +592,21 @@ const GardenPlanner = () => {
 
     fetchGarden();
   }, [id]);
+
+  useEffect(() => {
+    // Collect all plants from categories
+    const plants = [];
+    Object.values(VEGETABLE_CATEGORIES).forEach((category) => {
+      category.forEach((plant) => plants.push(plant.name));
+    });
+    Object.values(HERB_CATEGORIES).forEach((category) => {
+      category.forEach((plant) => plants.push(plant.name));
+    });
+    Object.values(FRUIT_CATEGORIES).forEach((category) => {
+      category.forEach((plant) => plants.push(plant.name));
+    });
+    setAvailablePlants(plants);
+  }, []);
 
   const handleSquareClick = async (squareIndex, bedIndex) => {
     if (!garden?.layout?.beds?.[bedIndex]) {
@@ -797,8 +834,19 @@ const GardenPlanner = () => {
   };
 
   const handlePlantClick = (plant) => {
-    console.log("Plant clicked:", plant);
-    setSelectedPlantForPlacement(plant);
+    setSelectedPlant(plant.name);
+  };
+
+  const formatDateSafely = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return "Date not set";
+      }
+      return format(date, "MMM d, yyyy");
+    } catch (err) {
+      return "Date not set";
+    }
   };
 
   const getPlantTooltip = (plant) => {
@@ -806,8 +854,6 @@ const GardenPlanner = () => {
 
     const careInfo = PLANT_CARE_INFO[plant.plantName] || {};
     const companionInfo = COMPANION_PLANTING[plant.plantName];
-    const plantedDate = new Date(plant.plantedDate);
-    const harvestDate = new Date(plant.harvestDate);
 
     return (
       <div
@@ -828,13 +874,13 @@ const GardenPlanner = () => {
         {/* Companion Planting Information */}
         {companionInfo && (
           <div className="mt-3 space-y-2 text-sm border-t border-green-100 pt-2">
-            {companionInfo.companions.length > 0 && (
+            {companionInfo.companions?.length > 0 && (
               <div className="text-green-600">
                 <span className="font-medium">Good companions:</span>{" "}
                 {companionInfo.companions.join(", ")}
               </div>
             )}
-            {companionInfo.avoid.length > 0 && (
+            {companionInfo.avoid?.length > 0 && (
               <div className="text-red-500">
                 <span className="font-medium">Avoid planting near:</span>{" "}
                 {companionInfo.avoid.join(", ")}
@@ -874,10 +920,10 @@ const GardenPlanner = () => {
         {/* Dates */}
         <div className="mt-3 flex flex-wrap gap-2 border-t border-green-100 pt-2">
           <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-            🌱 Planted: {format(plantedDate, "MMM d, yyyy")}
+            🌱 Planted: {formatDateSafely(plant.plantedDate)}
           </span>
           <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
-            🌾 Harvest: {format(harvestDate, "MMM d, yyyy")}
+            🌾 Harvest: {formatDateSafely(plant.harvestDate)}
           </span>
         </div>
       </div>
@@ -1220,199 +1266,170 @@ const GardenPlanner = () => {
     return nearby;
   };
 
-  const renderSquare = (bedIndex, squareIndex) => {
-    const plant = garden.layout.beds[bedIndex].plants.find(
-      (p) => p.position === squareIndex
-    );
-
-    if (plant) {
-      const companionInfo = getCompanionInfo(plant.name);
-      const tooltipContent = (
-        <div className="p-4 max-w-xs bg-white/90 backdrop-blur-sm border border-green-200 rounded-lg shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xl">{plant.emoji}</span>
-            <h3 className="font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              {plant.name}
-            </h3>
-          </div>
-
-          <div className="space-y-2 text-sm">
-            {companionInfo && (
-              <>
-                {companionInfo.goodCompanions.length > 0 && (
-                  <div className="text-green-600">
-                    <span className="font-medium">Good neighbors:</span>{" "}
-                    {companionInfo.goodCompanions.join(", ")}
-                  </div>
-                )}
-                {companionInfo.badCompanions.length > 0 && (
-                  <div className="text-red-500">
-                    <span className="font-medium">Avoid planting near:</span>{" "}
-                    {companionInfo.badCompanions.join(", ")}
-                  </div>
-                )}
-                {companionInfo.benefits.length > 0 && (
-                  <div className="text-gray-600">
-                    <span className="font-medium">Benefits:</span>
-                    <ul className="list-disc list-inside ml-2">
-                      {companionInfo.benefits.map((benefit, i) => (
-                        <li key={i}>{benefit}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </>
-            )}
-
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-                🌱 Plant date: {format(new Date(), "MMM d")}
-              </span>
-              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
-                🌾 Harvest:{" "}
-                {format(addDays(new Date(), plant.daysToMaturity), "MMM d")}
-              </span>
+  const renderSquare = (
+    bedIndex,
+    squareIndex,
+    x,
+    y,
+    isHovered,
+    plantInSquare
+  ) => {
+    return (
+      <div
+        key={squareIndex}
+        className={`aspect-square w-full relative cursor-pointer flex items-center justify-center transition-all duration-300 border group rounded-md ${
+          selectedPlantForPlacement || isDragging
+            ? "border-green-400 hover:border-green-500"
+            : "border-green-300"
+        } ${
+          isHovered
+            ? "bg-green-100 scale-105 shadow-lg z-10"
+            : "bg-white hover:bg-green-50"
+        }`}
+        onClick={() => handleSquareClick(squareIndex, bedIndex)}
+        onDragOver={(e) => handleDragOver(e, `${bedIndex}-${squareIndex}`)}
+        onDrop={(e) => handleDrop(e, `${bedIndex}-${squareIndex}`)}
+        onDragEnter={() => setHoveredSquare(`${bedIndex}-${squareIndex}`)}
+        onDragLeave={() => setHoveredSquare(null)}
+        onMouseEnter={() =>
+          !isDragging && setHoveredSquare(`${bedIndex}-${squareIndex}`)
+        }
+        onMouseLeave={() => !isDragging && setHoveredSquare(null)}
+      >
+        {plantInSquare && (
+          <>
+            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-all duration-300 flex gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingPlant({
+                    x,
+                    y,
+                    bedIndex,
+                    currentName: plantInSquare.plantName,
+                  });
+                }}
+                className="p-1.5 hover:bg-green-100 rounded-full z-10 transform hover:scale-110"
+                title="Edit plant name"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 text-green-600"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                </svg>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemovePlant(x, y, bedIndex);
+                }}
+                className="p-1.5 hover:bg-red-100 rounded-full z-10 transform hover:rotate-90"
+                title="Remove plant"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 text-red-500"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
             </div>
-          </div>
-        </div>
-      );
-
-      return (
-        <div
-          key={squareIndex}
-          className={`aspect-square w-full relative cursor-pointer flex items-center justify-center transition-all duration-300 border-2 group rounded-lg ${
-            selectedPlantForPlacement || isDragging
-              ? "border-green-400 hover:border-green-500"
-              : "border-green-300"
-          } ${
-            isHovered
-              ? "bg-green-100 scale-105 shadow-lg z-10"
-              : "bg-white hover:bg-green-50"
-          }`}
-          onClick={() => handleSquareClick(squareIndex, selectedBedIndex)}
-          onDragOver={(e) =>
-            handleDragOver(e, `${selectedBedIndex}-${squareIndex}`)
-          }
-          onDrop={(e) => handleDrop(e, `${selectedBedIndex}-${squareIndex}`)}
-          onDragEnter={() =>
-            setHoveredSquare(`${selectedBedIndex}-${squareIndex}`)
-          }
-          onDragLeave={() => setHoveredSquare(null)}
-          onMouseEnter={() =>
-            !isDragging &&
-            setHoveredSquare(`${selectedBedIndex}-${squareIndex}`)
-          }
-          onMouseLeave={() => !isDragging && setHoveredSquare(null)}
-        >
-          {plantInSquare && (
-            <>
-              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-all duration-300 flex gap-1">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingPlant({
-                      x,
-                      y,
-                      bedIndex,
-                      currentName: plantInSquare.plantName,
-                    });
+            <div className="text-center transform transition-transform duration-300 group-hover:scale-110">
+              <span className="text-2xl block mb-1">{plantInSquare.emoji}</span>
+              {editingPlant?.x === x &&
+              editingPlant?.y === y &&
+              editingPlant?.bedIndex === bedIndex ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleEditPlant(x, y, bedIndex, e.target.plantName.value);
                   }}
-                  className="p-1.5 hover:bg-green-100 rounded-full z-10 transform hover:scale-110"
-                  title="Edit plant name"
+                  className="relative z-20"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 sm:h-4 sm:w-4 text-green-600"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemovePlant(x, y, selectedBedIndex);
-                  }}
-                  className="p-1.5 hover:bg-red-100 rounded-full z-10 transform hover:rotate-90"
-                  title="Remove plant"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-3 w-3 sm:h-4 sm:w-4 text-red-500"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <div className="text-center transform transition-transform duration-300 group-hover:scale-110">
-                <span className="text-2xl sm:text-4xl block mb-1">
-                  {plantInSquare.emoji}
-                </span>
-                {editingPlant?.x === x &&
-                editingPlant?.y === y &&
-                editingPlant?.bedIndex === selectedBedIndex ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleEditPlant(
-                        x,
-                        y,
-                        selectedBedIndex,
-                        e.target.plantName.value
-                      );
+                  <input
+                    name="plantName"
+                    type="text"
+                    defaultValue={editingPlant.currentName}
+                    className="w-full text-xs px-1.5 py-0.5 rounded border border-green-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none bg-white"
+                    autoFocus
+                    onBlur={(e) => {
+                      if (e.target.value !== editingPlant.currentName) {
+                        handleEditPlant(x, y, bedIndex, e.target.value);
+                      } else {
+                        setEditingPlant(null);
+                      }
                     }}
-                    className="relative z-20"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      name="plantName"
-                      type="text"
-                      defaultValue={editingPlant.currentName}
-                      className="w-full text-[10px] sm:text-xs px-1.5 py-0.5 rounded border border-green-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none bg-white"
-                      autoFocus
-                      onBlur={(e) => {
-                        if (e.target.value !== editingPlant.currentName) {
-                          handleEditPlant(
-                            x,
-                            y,
-                            selectedBedIndex,
-                            e.target.value
-                          );
-                        } else {
-                          setEditingPlant(null);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") {
-                          setEditingPlant(null);
-                        }
-                      }}
-                    />
-                  </form>
-                ) : (
-                  <div className="text-[10px] sm:text-xs font-medium bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
-                    {plantInSquare.plantName}
-                  </div>
-                )}
-              </div>
-              {isHovered && getPlantTooltip(plantInSquare)}
-            </>
-          )}
-          {!plantInSquare && (
-            <div className="text-[10px] sm:text-xs text-gray-400/80">
-              ({x + 1}, {y + 1})
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setEditingPlant(null);
+                      }
+                    }}
+                  />
+                </form>
+              ) : (
+                <div className="text-xs font-medium bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
+                  {plantInSquare.plantName}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      );
+            {isHovered && getPlantTooltip(plantInSquare)}
+          </>
+        )}
+        {!plantInSquare && (
+          <div className="text-xs text-gray-400/80">
+            ({x + 1}, {y + 1})
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const getCurrentCategories = () => {
+    switch (activeTab) {
+      case "vegetables":
+        return VEGETABLE_CATEGORIES;
+      case "herbs":
+        return HERB_CATEGORIES;
+      case "fruits":
+        return FRUIT_CATEGORIES;
+      default:
+        return VEGETABLE_CATEGORIES;
     }
+  };
+
+  const gridStyle = {
+    gridTemplateColumns: `repeat(${getGridDimensions().width}, minmax(0, 1fr))`,
+    gridTemplateRows: `repeat(${getGridDimensions().length}, minmax(0, 1fr))`,
+  };
+
+  const renderGrid = () => {
+    const { width, length } = getGridDimensions();
+    const totalSquares = width * length;
+    return Array.from({ length: totalSquares }).map((_, squareIndex) => {
+      const x = squareIndex % width;
+      const y = Math.floor(squareIndex / width);
+      const isHovered = hoveredSquare === `${selectedBedIndex}-${squareIndex}`;
+      const plantInSquare = getPlantInSquare(squareIndex);
+
+      return renderSquare(
+        selectedBedIndex,
+        squareIndex,
+        x,
+        y,
+        isHovered,
+        plantInSquare
+      );
+    });
   };
 
   if (loading) {
@@ -1424,534 +1441,228 @@ const GardenPlanner = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 via-green-100/50 to-green-50">
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        {/* Enhanced header with backdrop blur */}
-        <div className="sticky top-0 z-50 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 py-4 bg-white/80 backdrop-blur-lg border-b border-green-100 mb-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-800 to-green-600 bg-clip-text text-transparent">
-              {garden?.name}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+    <div className="flex flex-col h-screen">
+      {/* Header */}
+      <div className="flex justify-between items-center p-4 border-b">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-2 text-green-700 hover:text-green-800"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span>Back to Dashboard</span>
+          </button>
+          <h1 className="text-2xl font-bold text-green-700">
+            {garden?.name || "Garden"}
+          </h1>
+        </div>
+        <div className="flex gap-4">
+          <button
+            onClick={handlePrint}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Print Garden
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Content */}
+        <div className="flex-1 p-4 overflow-y-auto">
+          {/* Garden Beds Section */}
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Garden Beds
+              </h2>
               <button
-                onClick={() => navigate("/pest-disease-guide")}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-all duration-300 shadow-sm hover:shadow-md text-sm sm:text-base"
+                onClick={handleAddBed}
+                className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Pest & Disease Guide
-              </button>
-              <button
-                onClick={handlePrint}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-lg hover:from-green-700 hover:to-green-600 transition-all duration-300 shadow-sm hover:shadow-md text-sm sm:text-base group"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 transform group-hover:scale-110 transition-transform duration-300"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Print Garden
-              </button>
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="flex-1 sm:flex-none flex items-center justify-center text-green-700 hover:text-green-800 font-medium text-sm sm:text-base hover:bg-green-50 px-4 py-2 rounded-lg transition-colors duration-300"
-              >
-                ← Back to Dashboard
+                <span>Add New Bed</span>
               </button>
             </div>
+            <div className="flex gap-4 flex-wrap">
+              {garden?.layout?.beds?.map((bed, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedBedIndex(index)}
+                  className={`px-4 py-2 rounded-lg border ${
+                    selectedBedIndex === index
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-200 hover:border-green-200"
+                  }`}
+                >
+                  Bed {index + 1} ({bed.width}x{bed.length})
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Garden Layout Section */}
+          {selectedBedIndex !== null &&
+            garden?.layout?.beds?.[selectedBedIndex] && (
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                  Garden Layout
+                </h2>
+                <div className="mb-2">
+                  <h3 className="text-lg text-gray-700">
+                    Bed {selectedBedIndex + 1} (
+                    {garden.layout.beds[selectedBedIndex].width}x
+                    {garden.layout.beds[selectedBedIndex].length})
+                  </h3>
+                </div>
+                <div
+                  className="grid gap-4 max-w-[1000px] mx-auto"
+                  style={gridStyle}
+                >
+                  {renderGrid()}
+                </div>
+              </div>
+            )}
         </div>
 
-        {/* Enhanced garden controls with glass effect */}
-        <div className="bg-white/90 backdrop-blur-lg rounded-xl shadow-lg p-6 mb-8 border border-green-100/50 hover:shadow-xl transition-shadow duration-300">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <h2 className="text-xl font-semibold bg-gradient-to-r from-green-800 to-green-600 bg-clip-text text-transparent">
-              Garden Beds
-            </h2>
+        {/* Right Sidebar */}
+        <div className="w-80 bg-white border-l border-gray-200 p-4 overflow-y-auto">
+          {/* Plant Selection Tabs */}
+          <div className="flex gap-2 mb-6">
             <button
-              onClick={handleAddBed}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-lg hover:from-green-700 hover:to-green-600 transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 group"
+              className={`px-4 py-2 font-medium ${
+                activeTab === "vegetables"
+                  ? "text-green-600 border-b-2 border-green-500"
+                  : "text-gray-500 hover:text-green-600"
+              }`}
+              onClick={() => setActiveTab("vegetables")}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 transform group-hover:rotate-90 transition-transform duration-300"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Add New Bed
+              Vegetables
+            </button>
+            <button
+              className={`px-4 py-2 font-medium ${
+                activeTab === "herbs"
+                  ? "text-green-600 border-b-2 border-green-500"
+                  : "text-gray-500 hover:text-green-600"
+              }`}
+              onClick={() => setActiveTab("herbs")}
+            >
+              Herbs
+            </button>
+            <button
+              className={`px-4 py-2 font-medium ${
+                activeTab === "fruits"
+                  ? "text-green-600 border-b-2 border-green-500"
+                  : "text-gray-500 hover:text-green-600"
+              }`}
+              onClick={() => setActiveTab("fruits")}
+            >
+              Fruits
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3">
-            {garden?.layout?.beds.map((bed, index) => (
-              <div
-                key={index}
-                className={`relative group cursor-pointer p-4 rounded-xl transition-all duration-300 transform hover:scale-102 ${
-                  selectedBedIndex === index
-                    ? "bg-gradient-to-br from-green-100 to-green-50 border-2 border-green-500 shadow-md"
-                    : "bg-white border-2 border-gray-100 hover:border-green-300 hover:shadow-md"
-                }`}
-                onClick={() => setSelectedBedIndex(index)}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-base sm:text-lg font-medium text-gray-800">
-                    Bed {index + 1}
-                  </span>
-                  <span className="text-xs sm:text-sm text-gray-500 bg-gray-100/80 px-2 py-1 rounded-full">
-                    {bed.width} × {bed.length}
-                  </span>
-                </div>
-
-                {garden.layout.beds.length > 1 && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveBed(index);
-                    }}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 p-1.5 hover:bg-red-100 rounded-full"
-                    title="Remove bed"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 text-red-500 transform hover:rotate-90 transition-transform duration-300"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Enhanced main layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-          {/* Garden Grid */}
-          <div className="lg:col-span-9 order-2 lg:order-1">
-            <div className="bg-white/90 backdrop-blur-lg rounded-xl shadow-lg p-6 sm:p-8 overflow-auto border border-green-100/50 hover:shadow-xl transition-shadow duration-300">
-              <h2 className="text-xl font-semibold bg-gradient-to-r from-green-800 to-green-600 bg-clip-text text-transparent mb-6">
-                Garden Layout
-              </h2>
-              {selectedPlantForPlacement && (
-                <div className="mb-6 p-3 bg-gradient-to-r from-green-100 to-green-50 rounded-lg flex items-center gap-3 animate-fadeIn">
-                  <span className="text-2xl transform hover:scale-110 transition-transform duration-300">
-                    {selectedPlantForPlacement.emoji}
-                  </span>
-                  <span className="text-sm sm:text-base text-green-800">
-                    Click any plot to place {selectedPlantForPlacement.name}
-                  </span>
-                  <button
-                    onClick={() => setSelectedPlantForPlacement(null)}
-                    className="ml-auto text-xs sm:text-sm text-green-700 hover:text-green-800 hover:bg-green-200/50 px-2 py-1 rounded-md transition-colors duration-300"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-              <div className="grid grid-cols-1 gap-8">
-                {garden?.layout?.beds.map((bed, bedIndex) => (
+          {/* Plant Categories */}
+          <div className="space-y-4">
+            {Object.entries(getCurrentCategories()).map(
+              ([category, plants]) => (
+                <div
+                  key={category}
+                  className="border-b border-gray-100 pb-4 last:border-0"
+                >
                   <div
-                    key={bedIndex}
-                    className="flex flex-col items-center w-full animate-fadeIn"
+                    className="flex items-center justify-between cursor-pointer"
+                    onClick={() => toggleCategory(category)}
                   >
-                    <div className="flex items-center justify-between w-full mb-4">
-                      <h3 className="text-base sm:text-lg font-medium text-gray-800">
-                        Bed {bedIndex + 1}{" "}
-                        <span className="text-sm text-gray-500 bg-gray-100/80 px-2 py-1 rounded-full ml-2">
-                          {bed.width} × {bed.length}
-                        </span>
-                      </h3>
-                    </div>
-                    <div className="border-4 border-green-600/20 p-3 sm:p-6 w-full bg-gradient-to-br from-green-50 to-white rounded-xl shadow-inner overflow-auto hover:border-green-600/30 transition-colors duration-300">
-                      <div
-                        className="grid mx-auto"
-                        style={{
-                          gridTemplateColumns: `repeat(${bed.width}, minmax(0, 1fr))`,
-                          gridTemplateRows: `repeat(${bed.length}, minmax(0, 1fr))`,
-                          gap: "0.375rem",
-                          padding: "0.375rem",
-                          maxWidth: "100%",
-                        }}
-                      >
-                        {Array.from({
-                          length: bed.width * bed.length,
-                        }).map((_, i) => {
-                          const x = i % bed.width;
-                          const y = Math.floor(i / bed.width);
-                          const plantInSquare = bed.plants.find(
-                            (p) => p.position.x === x && p.position.y === y
-                          );
-                          const isHovered =
-                            hoveredSquare === `${bedIndex}-${i}`;
-
-                          return (
-                            <div
-                              key={i}
-                              className={`aspect-square w-full relative cursor-pointer flex items-center justify-center transition-all duration-300 border-2 group rounded-lg ${
-                                selectedPlantForPlacement || isDragging
-                                  ? "border-green-400 hover:border-green-500"
-                                  : "border-green-300"
-                              } ${
-                                isHovered
-                                  ? "bg-green-100 scale-105 shadow-lg z-10"
-                                  : "bg-white hover:bg-green-50"
-                              }`}
-                              onClick={() => handleSquareClick(i, bedIndex)}
-                              onDragOver={(e) =>
-                                handleDragOver(e, `${bedIndex}-${i}`)
-                              }
-                              onDrop={(e) => handleDrop(e, `${bedIndex}-${i}`)}
-                              onDragEnter={() =>
-                                setHoveredSquare(`${bedIndex}-${i}`)
-                              }
-                              onDragLeave={() => setHoveredSquare(null)}
-                              onMouseEnter={() =>
-                                !isDragging &&
-                                setHoveredSquare(`${bedIndex}-${i}`)
-                              }
-                              onMouseLeave={() =>
-                                !isDragging && setHoveredSquare(null)
-                              }
-                            >
-                              {plantInSquare && (
-                                <>
-                                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-all duration-300 flex gap-1">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingPlant({
-                                          x,
-                                          y,
-                                          bedIndex,
-                                          currentName: plantInSquare.plantName,
-                                        });
-                                      }}
-                                      className="p-1.5 hover:bg-green-100 rounded-full z-10 transform hover:scale-110"
-                                      title="Edit plant name"
-                                    >
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="h-3 w-3 sm:h-4 sm:w-4 text-green-600"
-                                        viewBox="0 0 20 20"
-                                        fill="currentColor"
-                                      >
-                                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                      </svg>
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleRemovePlant(x, y, bedIndex);
-                                      }}
-                                      className="p-1.5 hover:bg-red-100 rounded-full z-10 transform hover:rotate-90"
-                                      title="Remove plant"
-                                    >
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="h-3 w-3 sm:h-4 sm:w-4 text-red-500"
-                                        viewBox="0 0 20 20"
-                                        fill="currentColor"
-                                      >
-                                        <path
-                                          fillRule="evenodd"
-                                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                          clipRule="evenodd"
-                                        />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                  <div className="text-center transform transition-transform duration-300 group-hover:scale-110">
-                                    <span className="text-2xl sm:text-4xl block mb-1">
-                                      {plantInSquare.emoji}
-                                    </span>
-                                    {editingPlant?.x === x &&
-                                    editingPlant?.y === y &&
-                                    editingPlant?.bedIndex === bedIndex ? (
-                                      <form
-                                        onSubmit={(e) => {
-                                          e.preventDefault();
-                                          handleEditPlant(
-                                            x,
-                                            y,
-                                            bedIndex,
-                                            e.target.plantName.value
-                                          );
-                                        }}
-                                        className="relative z-20"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <input
-                                          name="plantName"
-                                          type="text"
-                                          defaultValue={
-                                            editingPlant.currentName
-                                          }
-                                          className="w-full text-[10px] sm:text-xs px-1.5 py-0.5 rounded border border-green-300 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none bg-white"
-                                          autoFocus
-                                          onBlur={(e) => {
-                                            if (
-                                              e.target.value !==
-                                              editingPlant.currentName
-                                            ) {
-                                              handleEditPlant(
-                                                x,
-                                                y,
-                                                bedIndex,
-                                                e.target.value
-                                              );
-                                            } else {
-                                              setEditingPlant(null);
-                                            }
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (e.key === "Escape") {
-                                              setEditingPlant(null);
-                                            }
-                                          }}
-                                        />
-                                      </form>
-                                    ) : (
-                                      <div className="text-[10px] sm:text-xs font-medium bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
-                                        {plantInSquare.plantName}
-                                      </div>
-                                    )}
-                                  </div>
-                                  {isHovered && getPlantTooltip(plantInSquare)}
-                                </>
-                              )}
-                              {!plantInSquare && (
-                                <div className="text-[10px] sm:text-xs text-gray-400/80">
-                                  ({x + 1}, {y + 1})
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Enhanced Plant Selection */}
-          <div className="lg:col-span-3 space-y-4 order-1 lg:order-2">
-            <div className="bg-white/90 backdrop-blur-lg rounded-xl shadow-lg p-6 lg:sticky lg:top-4 transition-all duration-300 border border-green-100/50 hover:shadow-xl">
-              {/* Enhanced Tabs */}
-              <div className="flex space-x-2 mb-6 border-b border-green-100 overflow-x-auto">
-                <button
-                  className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap transition-all duration-300 ${
-                    activeTab === "vegetables"
-                      ? "text-green-600 border-b-2 border-green-500"
-                      : "text-gray-500 hover:text-green-600"
-                  }`}
-                  onClick={() => setActiveTab("vegetables")}
-                >
-                  Vegetables
-                </button>
-                <button
-                  className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap transition-all duration-300 ${
-                    activeTab === "herbs"
-                      ? "text-green-600 border-b-2 border-green-500"
-                      : "text-gray-500 hover:text-green-600"
-                  }`}
-                  onClick={() => setActiveTab("herbs")}
-                >
-                  Herbs
-                </button>
-                <button
-                  className={`px-3 sm:px-4 py-2 font-medium whitespace-nowrap transition-all duration-300 ${
-                    activeTab === "fruits"
-                      ? "text-green-600 border-b-2 border-green-500"
-                      : "text-gray-500 hover:text-green-600"
-                  }`}
-                  onClick={() => setActiveTab("fruits")}
-                >
-                  Fruits
-                </button>
-              </div>
-
-              <div className="space-y-3 max-h-[calc(100vh-12rem)] overflow-y-auto">
-                {Object.entries(
-                  activeTab === "vegetables"
-                    ? VEGETABLE_CATEGORIES
-                    : activeTab === "herbs"
-                    ? HERB_CATEGORIES
-                    : FRUIT_CATEGORIES
-                ).map(([category, plants]) => (
-                  <div
-                    key={category}
-                    className="rounded-lg overflow-hidden border border-green-100/50 hover:border-green-200 transition-colors duration-300"
-                  >
-                    <button
-                      className="w-full px-4 py-3 text-left bg-gradient-to-r from-green-50 to-transparent hover:from-green-100 flex justify-between items-center text-sm sm:text-base transition-colors duration-300"
-                      onClick={() => toggleCategory(category)}
-                    >
-                      <span className="font-medium text-gray-800">
-                        {category}
-                      </span>
-                      <span className="text-green-600 transform transition-transform duration-300">
+                    <h3 className="text-sm font-medium text-gray-800">
+                      {category}
+                    </h3>
+                    <button className="p-1 hover:bg-gray-100 rounded-full">
+                      <span className="text-xl text-gray-500">
                         {expandedCategories[category] ? "−" : "+"}
                       </span>
                     </button>
-                    {expandedCategories[category] && (
-                      <div className="p-2 space-y-1.5 animate-fadeIn">
-                        {plants.map((plant) => (
-                          <div
-                            key={plant.name}
-                            draggable
-                            onClick={() => handlePlantClick(plant)}
-                            onDragStart={(e) => handleDragStart(plant, e)}
-                            onDragEnd={handleDragEnd}
-                            className={`w-full text-left p-2.5 rounded-lg hover:bg-green-50 flex items-center space-x-3 cursor-pointer transition-all duration-300 group ${
-                              selectedPlantForPlacement?.name === plant.name
-                                ? "bg-green-100"
-                                : "hover:shadow-sm"
-                            }`}
-                          >
-                            <span className="text-xl sm:text-2xl transform group-hover:scale-110 transition-transform duration-300">
-                              {plant.emoji}
-                            </span>
-                            <div>
-                              <div className="font-medium text-sm sm:text-base text-gray-800">
-                                {plant.name}
-                              </div>
-                              <div className="text-[10px] sm:text-xs text-gray-500">
-                                {plant.daysToMaturity} days to maturity
-                                {plant.type && (
-                                  <span className="inline-flex items-center ml-2 px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                                    {plant.type}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                ))}
-              </div>
-            </div>
+
+                  {expandedCategories[category] && (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {plants.map((plant) => (
+                        <button
+                          key={plant.name}
+                          className={`text-left p-2 rounded-lg transition-colors ${
+                            selectedPlant === plant.name
+                              ? "bg-green-100"
+                              : "hover:bg-green-50"
+                          }`}
+                          onClick={() => handlePlantClick(plant)}
+                          draggable
+                          onDragStart={(e) => handleDragStart(plant, e)}
+                          onDragEnd={handleDragEnd}
+                        >
+                          <span className="mr-2">{plant.emoji}</span>
+                          <span className="text-sm">{plant.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            )}
           </div>
         </div>
       </div>
 
-      {/* Add the modal */}
+      {/* Add Bed Modal */}
       {showNewBedModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Add New Garden Bed
-                </h2>
-                <button
-                  onClick={() => setShowNewBedModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <svg
-                    className="w-5 h-5 text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <h2 className="text-xl font-semibold mb-4">Add New Garden Bed</h2>
+            <div className="flex gap-4 mb-4">
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">
+                  Width
+                </label>
+                <input
+                  type="number"
+                  value={newBedWidth}
+                  onChange={(e) => setNewBedWidth(parseInt(e.target.value))}
+                  className="border rounded px-3 py-2"
+                />
               </div>
-
-              <form onSubmit={handleCreateBed}>
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bed Dimensions (feet)
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <input
-                          type="number"
-                          value={newBedWidth}
-                          onChange={(e) => setNewBedWidth(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
-                          min="1"
-                          max="20"
-                          required
-                        />
-                        <span className="text-sm text-gray-500 mt-1 block">
-                          Width
-                        </span>
-                      </div>
-                      <span className="text-2xl text-gray-400">×</span>
-                      <div className="flex-1">
-                        <input
-                          type="number"
-                          value={newBedLength}
-                          onChange={(e) => setNewBedLength(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
-                          min="1"
-                          max="50"
-                          required
-                        />
-                        <span className="text-sm text-gray-500 mt-1 block">
-                          Length
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <button
-                      type="submit"
-                      className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                    >
-                      Add Bed
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowNewBedModal(false)}
-                      className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-300"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </form>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">
+                  Length
+                </label>
+                <input
+                  type="number"
+                  value={newBedLength}
+                  onChange={(e) => setNewBedLength(parseInt(e.target.value))}
+                  className="border rounded px-3 py-2"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setShowNewBedModal(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateBed}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Create Bed
+              </button>
             </div>
           </div>
         </div>

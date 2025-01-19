@@ -411,22 +411,38 @@ const Dashboard = () => {
               </div>
             </Link>
 
-            <Link
-              to="/recipe-suggestions"
-              className="group flex items-center gap-4 p-4 rounded-xl border-2 border-transparent hover:border-green-200 hover:bg-green-50 transition-all duration-300"
-            >
-              <div className="flex-shrink-0 w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-all duration-300">
-                <span className="text-2xl">🥗</span>
+            {gardens.length > 0 ? (
+              <Link
+                to={`/recipe-suggestions/${gardens[0]._id}`}
+                className="group flex items-center gap-4 p-4 rounded-xl border-2 border-transparent hover:border-green-200 hover:bg-green-50 transition-all duration-300"
+              >
+                <div className="flex-shrink-0 w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-all duration-300">
+                  <span className="text-2xl">🥗</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800 group-hover:text-green-700 transition-all duration-300">
+                    Recipe Suggestions
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Find recipes for your garden harvest
+                  </p>
+                </div>
+              </Link>
+            ) : (
+              <div className="group flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 bg-gray-50 cursor-not-allowed opacity-60">
+                <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl">🥗</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">
+                    Recipe Suggestions
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Create a garden first to get recipe suggestions
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-800 group-hover:text-green-700 transition-all duration-300">
-                  Recipe Suggestions
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Find recipes for your garden harvest
-                </p>
-              </div>
-            </Link>
+            )}
           </div>
         </div>
       </div>
