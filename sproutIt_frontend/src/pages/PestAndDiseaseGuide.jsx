@@ -7,7 +7,6 @@ import blightImage from "../assets/images/pests-diseases/blight.jpg";
 import spiderMitesImage from "../assets/images/pests-diseases/spiderMites.jpg";
 import cabbageWormImage from "../assets/images/pests-diseases/cabbageWorm.jpg";
 import fusariumImage from "../assets/images/pests-diseases/wilt.jpg";
-import bacterialSpotImage from "../assets/images/pests-diseases/bacterialspot.jpg";
 
 // Pest and Disease Database
 const PEST_AND_DISEASE_DATABASE = {
@@ -224,36 +223,6 @@ const PEST_AND_DISEASE_DATABASE = {
         "Rotate crops",
         "Maintain soil pH",
         "Avoid overwatering",
-      ],
-    },
-    "Bacterial Spot": {
-      type: "disease",
-      description:
-        "Bacterial infection causing dark spots on leaves and fruits",
-      identification: [
-        "Small dark spots with yellow halos",
-        "Spots on fruits and leaves",
-        "Leaf drop",
-        "Scabby lesions on fruits",
-      ],
-      affectedPlants: ["Tomatoes", "Peppers", "Eggplants"],
-      images: [bacterialSpotImage],
-      organicTreatment: [
-        "Remove infected plant parts",
-        "Apply copper-based sprays",
-        "Use compost tea",
-        "Improve air circulation",
-      ],
-      conventionalTreatment: [
-        "Apply copper-based bactericides",
-        "Use streptomycin sprays",
-        "Systemic bactericides",
-      ],
-      prevention: [
-        "Use disease-free seeds",
-        "Avoid overhead watering",
-        "Space plants properly",
-        "Clean tools between plants",
       ],
     },
   },
