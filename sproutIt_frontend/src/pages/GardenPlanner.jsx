@@ -437,6 +437,18 @@ const GardenPlanner = () => {
   const [selectedPlantForAI, setSelectedPlantForAI] = useState(null);
   const [availablePlants, setAvailablePlants] = useState([]);
   const [bedDimensions, setBedDimensions] = useState({ width: 4, length: 8 });
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
+  // Add resize listener
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const fetchGarden = async () => {
@@ -1516,90 +1528,255 @@ const GardenPlanner = () => {
             )}
         </div>
 
-        {/* Right Sidebar */}
-        <div className="w-80 bg-white border-l border-gray-200 p-4 overflow-y-auto">
-          {/* Plant Selection Tabs */}
-          <div className="flex gap-2 mb-6">
-            <button
-              className={`px-4 py-2 font-medium ${
-                activeTab === "vegetables"
-                  ? "text-green-600 border-b-2 border-green-500"
-                  : "text-gray-500 hover:text-green-600"
-              }`}
-              onClick={() => setActiveTab("vegetables")}
-            >
-              Vegetables
-            </button>
-            <button
-              className={`px-4 py-2 font-medium ${
-                activeTab === "herbs"
-                  ? "text-green-600 border-b-2 border-green-500"
-                  : "text-gray-500 hover:text-green-600"
-              }`}
-              onClick={() => setActiveTab("herbs")}
-            >
-              Herbs
-            </button>
-            <button
-              className={`px-4 py-2 font-medium ${
-                activeTab === "fruits"
-                  ? "text-green-600 border-b-2 border-green-500"
-                  : "text-gray-500 hover:text-green-600"
-              }`}
-              onClick={() => setActiveTab("fruits")}
-            >
-              Fruits
-            </button>
-          </div>
+        {/* Right Sidebar - Hide on mobile */}
+        {!isMobileView && (
+          <div className="w-80 bg-white border-l border-gray-200 p-4 overflow-y-auto">
+            {/* Plant Selection Tabs */}
+            <div className="flex gap-2 mb-6">
+              <button
+                className={`px-4 py-2 font-medium ${
+                  activeTab === "vegetables"
+                    ? "text-green-600 border-b-2 border-green-500"
+                    : "text-gray-500 hover:text-green-600"
+                }`}
+                onClick={() => setActiveTab("vegetables")}
+              >
+                Vegetables
+              </button>
+              <button
+                className={`px-4 py-2 font-medium ${
+                  activeTab === "herbs"
+                    ? "text-green-600 border-b-2 border-green-500"
+                    : "text-gray-500 hover:text-green-600"
+                }`}
+                onClick={() => setActiveTab("herbs")}
+              >
+                Herbs
+              </button>
+              <button
+                className={`px-4 py-2 font-medium ${
+                  activeTab === "fruits"
+                    ? "text-green-600 border-b-2 border-green-500"
+                    : "text-gray-500 hover:text-green-600"
+                }`}
+                onClick={() => setActiveTab("fruits")}
+              >
+                Fruits
+              </button>
+            </div>
 
-          {/* Plant Categories */}
-          <div className="space-y-4">
-            {Object.entries(getCurrentCategories()).map(
-              ([category, plants]) => (
-                <div
-                  key={category}
-                  className="border-b border-gray-100 pb-4 last:border-0"
-                >
+            {/* Plant Categories */}
+            <div className="space-y-4">
+              {Object.entries(getCurrentCategories()).map(
+                ([category, plants]) => (
                   <div
-                    className="flex items-center justify-between cursor-pointer"
-                    onClick={() => toggleCategory(category)}
+                    key={category}
+                    className="border-b border-gray-100 pb-4 last:border-0"
                   >
-                    <h3 className="text-sm font-medium text-gray-800">
-                      {category}
-                    </h3>
-                    <button className="p-1 hover:bg-gray-100 rounded-full">
-                      <span className="text-xl text-gray-500">
-                        {expandedCategories[category] ? "−" : "+"}
-                      </span>
-                    </button>
-                  </div>
-
-                  {expandedCategories[category] && (
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      {plants.map((plant) => (
-                        <button
-                          key={plant.name}
-                          className={`text-left p-2 rounded-lg transition-colors ${
-                            selectedPlant === plant.name
-                              ? "bg-green-100"
-                              : "hover:bg-green-50"
-                          }`}
-                          onClick={() => handlePlantClick(plant)}
-                          draggable
-                          onDragStart={(e) => handleDragStart(plant, e)}
-                          onDragEnd={handleDragEnd}
-                        >
-                          <span className="mr-2">{plant.emoji}</span>
-                          <span className="text-sm">{plant.name}</span>
-                        </button>
-                      ))}
+                    <div
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => toggleCategory(category)}
+                    >
+                      <h3 className="text-sm font-medium text-gray-800">
+                        {category}
+                      </h3>
+                      <button className="p-1 hover:bg-gray-100 rounded-full">
+                        <span className="text-xl text-gray-500">
+                          {expandedCategories[category] ? "−" : "+"}
+                        </span>
+                      </button>
                     </div>
+
+                    {expandedCategories[category] && (
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {plants.map((plant) => (
+                          <button
+                            key={plant.name}
+                            className={`text-left p-2 rounded-lg transition-colors ${
+                              selectedPlant === plant.name
+                                ? "bg-green-100"
+                                : "hover:bg-green-50"
+                            }`}
+                            onClick={() => handlePlantClick(plant)}
+                            draggable
+                            onDragStart={(e) => handleDragStart(plant, e)}
+                            onDragEnd={handleDragEnd}
+                          >
+                            <span className="mr-2">{plant.emoji}</span>
+                            <span className="text-sm">{plant.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Plant Selection Menu */}
+        {isMobileView && showMobileMenu && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+            <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-xl max-h-[80vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+                <h3 className="text-lg font-medium">Select Plant</h3>
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-4">
+                {/* Plant Selection Tabs */}
+                <div className="flex gap-2 mb-6 overflow-x-auto">
+                  <button
+                    className={`px-4 py-2 font-medium whitespace-nowrap ${
+                      activeTab === "vegetables"
+                        ? "text-green-600 border-b-2 border-green-500"
+                        : "text-gray-500 hover:text-green-600"
+                    }`}
+                    onClick={() => setActiveTab("vegetables")}
+                  >
+                    Vegetables
+                  </button>
+                  <button
+                    className={`px-4 py-2 font-medium whitespace-nowrap ${
+                      activeTab === "herbs"
+                        ? "text-green-600 border-b-2 border-green-500"
+                        : "text-gray-500 hover:text-green-600"
+                    }`}
+                    onClick={() => setActiveTab("herbs")}
+                  >
+                    Herbs
+                  </button>
+                  <button
+                    className={`px-4 py-2 font-medium whitespace-nowrap ${
+                      activeTab === "fruits"
+                        ? "text-green-600 border-b-2 border-green-500"
+                        : "text-gray-500 hover:text-green-600"
+                    }`}
+                    onClick={() => setActiveTab("fruits")}
+                  >
+                    Fruits
+                  </button>
+                </div>
+
+                {/* Plant Categories */}
+                <div className="space-y-4">
+                  {Object.entries(getCurrentCategories()).map(
+                    ([category, plants]) => (
+                      <div
+                        key={category}
+                        className="border-b border-gray-100 pb-4 last:border-0"
+                      >
+                        <div
+                          className="flex items-center justify-between cursor-pointer"
+                          onClick={() => toggleCategory(category)}
+                        >
+                          <h3 className="text-sm font-medium text-gray-800">
+                            {category}
+                          </h3>
+                          <button className="p-1 hover:bg-gray-100 rounded-full">
+                            <span className="text-xl text-gray-500">
+                              {expandedCategories[category] ? "−" : "+"}
+                            </span>
+                          </button>
+                        </div>
+
+                        {expandedCategories[category] && (
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            {plants.map((plant) => (
+                              <button
+                                key={plant.name}
+                                className={`text-left p-2 rounded-lg transition-colors ${
+                                  selectedPlant === plant.name
+                                    ? "bg-green-100"
+                                    : "hover:bg-green-50"
+                                }`}
+                                onClick={() => {
+                                  handlePlantClick(plant);
+                                  setSelectedPlantForPlacement(plant);
+                                  setShowMobileMenu(false);
+                                }}
+                              >
+                                <span className="mr-2">{plant.emoji}</span>
+                                <span className="text-sm">{plant.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
                   )}
                 </div>
-              )
-            )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Mobile Floating Action Button */}
+        {isMobileView && !showMobileMenu && (
+          <button
+            onClick={() => setShowMobileMenu(true)}
+            className="fixed bottom-6 right-6 w-14 h-14 bg-green-600 rounded-full shadow-lg flex items-center justify-center text-white z-50 hover:bg-green-700 active:transform active:scale-95 transition-all"
+          >
+            <svg
+              className="w-8 h-8"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+          </button>
+        )}
+
+        {/* Selected Plant Indicator on Mobile */}
+        {isMobileView && selectedPlantForPlacement && (
+          <div className="fixed bottom-24 right-6 bg-white rounded-lg shadow-lg p-3 z-50 flex items-center gap-2">
+            <span className="text-xl">{selectedPlantForPlacement.emoji}</span>
+            <span className="font-medium">
+              {selectedPlantForPlacement.name}
+            </span>
+            <button
+              onClick={() => setSelectedPlantForPlacement(null)}
+              className="ml-2 p-1 hover:bg-gray-100 rounded-full"
+            >
+              <svg
+                className="w-5 h-5 text-gray-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Add Bed Modal */}
