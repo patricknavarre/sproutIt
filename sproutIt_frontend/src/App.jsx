@@ -11,6 +11,7 @@ import SeedDatabase from "./pages/SeedDatabase";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Navbar from "./components/Navbar";
 
+// Trigger Vercel deployment - v1.0.0
 // Create a layout component that includes the Navbar
 const Layout = ({ children }) => {
   return (
