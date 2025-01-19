@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { format, addDays } from "date-fns";
-import { CompanionPlantingAI } from "../components/CompanionPlantingAI";
+import CompanionPlantingAI from "../components/CompanionPlantingAI";
 
 // Vegetable categories based on Johnny's Seeds
 const VEGETABLE_CATEGORIES = {
@@ -177,6 +177,7 @@ const COMPANION_PLANTING = {
       Beets: "Good use of space",
     },
   },
+  // Remove duplicate Spinach entry and keep only one
   Spinach: {
     companions: ["Strawberries", "Peas", "Beans", "Onions", "Brassicas"],
     avoid: ["Potatoes"],
@@ -186,6 +187,17 @@ const COMPANION_PLANTING = {
       Beans: "Fixes nitrogen in soil",
       Onions: "Deters pests",
       Brassicas: "Good space utilization",
+    },
+  },
+  // Remove duplicate Beets entry and keep only one
+  Beets: {
+    companions: ["Onions", "Lettuce", "Cabbage", "Garlic"],
+    avoid: ["Pole Beans", "Field Mustard"],
+    benefits: {
+      Onions: "Improves growth",
+      Lettuce: "Good use of space",
+      Cabbage: "Compatible growth patterns",
+      Garlic: "Deters pests",
     },
   },
   Kale: {
@@ -209,16 +221,6 @@ const COMPANION_PLANTING = {
       Rosemary: "Improves growth and repels pests",
       Sage: "Repels carrot flies",
       Peas: "Fixes nitrogen in soil",
-    },
-  },
-  Beets: {
-    companions: ["Onions", "Lettuce", "Cabbage", "Garlic"],
-    avoid: ["Pole Beans", "Field Mustard"],
-    benefits: {
-      Onions: "Improves growth",
-      Lettuce: "Good use of space",
-      Cabbage: "Compatible growth patterns",
-      Garlic: "Deters pests",
     },
   },
   // Nightshades
@@ -364,17 +366,6 @@ const COMPANION_PLANTING = {
       Nasturtiums: "Deters squash bugs and improves growth",
     },
   },
-  Spinach: {
-    companions: ["Strawberries", "Peas", "Beans", "Onions", "Brassicas"],
-    avoid: ["Potatoes"],
-    benefits: {
-      Strawberries: "Provides ground cover",
-      Peas: "Fixes nitrogen in soil",
-      Beans: "Fixes nitrogen in soil",
-      Onions: "Deters pests",
-      Brassicas: "Good space utilization",
-    },
-  },
   Watermelon: {
     companions: ["Corn", "Nasturtiums", "Radishes", "Marigolds", "Oregano"],
     avoid: ["Potatoes", "Herbs"],
@@ -395,16 +386,6 @@ const COMPANION_PLANTING = {
       Basil: "Repels asparagus beetles",
       Marigolds: "Deters nematodes",
       Nasturtiums: "Provides ground cover and deters pests",
-    },
-  },
-  Beets: {
-    companions: ["Onions", "Lettuce", "Cabbage", "Garlic"],
-    avoid: ["Pole Beans", "Field Mustard"],
-    benefits: {
-      Onions: "Improves growth",
-      Lettuce: "Good use of space",
-      Cabbage: "Compatible growth patterns",
-      Garlic: "Deters pests",
     },
   },
   Okra: {
