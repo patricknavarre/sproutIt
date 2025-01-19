@@ -7,7 +7,7 @@ import blightImage from "../assets/images/pests-diseases/blight.jpg";
 import spiderMitesImage from "../assets/images/pests-diseases/spiderMites.jpg";
 import cabbageWormImage from "../assets/images/pests-diseases/cabbageWorm.jpg";
 import fusariumImage from "../assets/images/pests-diseases/wilt.jpg";
-import bacterialSpotImage from "../assets/images/pests-diseases/bacterialSpot.jpg";
+import bacterialSpotImage from "../assets/images/pests-diseases/bacterialspot.jpg";
 
 // Pest and Disease Database
 const PEST_AND_DISEASE_DATABASE = {
