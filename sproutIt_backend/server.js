@@ -10,11 +10,11 @@ app.use(
   cors({
     origin: [
       "http://localhost:3051",
-      "https://sproutit-frontend.vercel.app",
+      "https://sprout-it-iota.vercel.app",
       "https://sproutit-backend-n55e.onrender.com",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "x-auth-token", "Accept"],
+    allowedHeaders: ["Content-Type", "x-auth-token", "Accept", "Origin"],
     exposedHeaders: ["x-auth-token"],
     credentials: true,
     preflightContinue: false,
