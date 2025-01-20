@@ -1281,15 +1281,19 @@ const GardenPlanner = () => {
     return (
       <div
         key={squareIndex}
-        className={`aspect-square w-full relative cursor-pointer flex items-center justify-center transition-all duration-300 border group rounded-md ${
-          selectedPlantForPlacement || isDragging
-            ? "border-green-400 hover:border-green-500"
-            : "border-green-300"
-        } ${
-          isHovered
-            ? "bg-green-100 scale-105 shadow-lg z-10"
-            : "bg-white hover:bg-green-50"
-        }`}
+        className={`aspect-square w-full relative cursor-pointer flex items-center justify-center transition-all duration-300 border group rounded-md 
+          ${
+            selectedPlantForPlacement || isDragging
+              ? "border-green-400 hover:border-green-500"
+              : "border-green-300"
+          }
+          ${
+            isHovered
+              ? "bg-green-100 scale-105 shadow-lg z-10"
+              : "bg-white hover:bg-green-50"
+          }
+          ${isMobileView ? "min-h-[80px]" : ""} 
+          ${selectedPlantForPlacement ? "animate-pulse" : ""}`}
         onClick={() => handleSquareClick(squareIndex, bedIndex)}
         onTouchStart={() =>
           !isDragging && setHoveredSquare(`${bedIndex}-${squareIndex}`)
@@ -1358,7 +1362,7 @@ const GardenPlanner = () => {
               </button>
             </div>
             <div className="text-center transform transition-transform duration-300 group-hover:scale-110">
-              <span className="text-2xl block mb-1">{plantInSquare.emoji}</span>
+              <span className="text-3xl block mb-1">{plantInSquare.emoji}</span>
               {editingPlant?.x === x &&
               editingPlant?.y === y &&
               editingPlant?.bedIndex === bedIndex ? (
@@ -1399,7 +1403,16 @@ const GardenPlanner = () => {
             {isHovered && !isMobileView && getPlantTooltip(plantInSquare)}
           </>
         )}
-        {!plantInSquare && (
+        {!plantInSquare && selectedPlantForPlacement && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-full h-full flex items-center justify-center bg-green-50/50">
+              <span className="text-3xl animate-bounce-slow">
+                {selectedPlantForPlacement.emoji}
+              </span>
+            </div>
+          </div>
+        )}
+        {!plantInSquare && !selectedPlantForPlacement && (
           <div className="text-xs text-gray-400/80">
             ({x + 1}, {y + 1})
           </div>
@@ -1758,7 +1771,7 @@ const GardenPlanner = () => {
         {isMobileView && !showMobileMenu && (
           <button
             onClick={() => setShowMobileMenu(true)}
-            className="fixed bottom-6 right-6 w-14 h-14 bg-green-600 rounded-full shadow-lg flex items-center justify-center text-white z-50 hover:bg-green-700 active:transform active:scale-95 transition-all"
+            className="fixed bottom-6 right-6 w-16 h-16 bg-green-600 rounded-full shadow-xl flex items-center justify-center text-white z-50 hover:bg-green-700 active:transform active:scale-90 transition-all animate-bounce-slow hover:shadow-green-300/50 hover:shadow-2xl"
           >
             <svg
               className="w-8 h-8"
@@ -1778,17 +1791,17 @@ const GardenPlanner = () => {
 
         {/* Selected Plant Indicator on Mobile */}
         {isMobileView && selectedPlantForPlacement && (
-          <div className="fixed bottom-24 right-6 bg-white rounded-lg shadow-lg p-3 z-50 flex items-center gap-2">
-            <span className="text-xl">{selectedPlantForPlacement.emoji}</span>
-            <span className="font-medium">
+          <div className="fixed bottom-24 right-6 bg-white rounded-xl shadow-xl p-4 z-50 flex items-center gap-3 border border-green-100 animate-bounce-slow">
+            <span className="text-2xl">{selectedPlantForPlacement.emoji}</span>
+            <span className="font-medium text-green-800">
               {selectedPlantForPlacement.name}
             </span>
             <button
               onClick={() => setSelectedPlantForPlacement(null)}
-              className="ml-2 p-1 hover:bg-gray-100 rounded-full"
+              className="ml-2 p-2 hover:bg-red-50 rounded-full transition-colors"
             >
               <svg
-                className="w-5 h-5 text-gray-500"
+                className="w-5 h-5 text-red-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
