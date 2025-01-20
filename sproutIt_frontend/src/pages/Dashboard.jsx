@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../utils/api";
 import WeatherDisplay from "../components/WeatherDisplay";
 import PlantingCalendar from "../components/PlantingCalendar";
 
@@ -29,19 +29,20 @@ const Dashboard = () => {
     const fetchData = async () => {
       try {
         // Fetch user data to get growing zone
-        const userResponse = await axios.get("/api/auth/user", {
-          headers: { "x-auth-token": token },
-        });
+        const userResponse = await api.get("/api/auth/user");
         setUserZone(userResponse.data.growingZone);
 
         // Fetch gardens
-        const gardensResponse = await axios.get("/api/gardens", {
-          headers: { "x-auth-token": token },
-        });
+        const gardensResponse = await api.get("/api/gardens");
+        console.log("Available gardens:", gardensResponse.data);
         setGardens(gardensResponse.data);
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Error fetching data:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+        });
         setError(err.response?.data?.message || "Error fetching data");
         setLoading(false);
       }
@@ -52,28 +53,21 @@ const Dashboard = () => {
 
   const handleCreateGarden = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
 
     try {
-      const response = await axios.post(
-        "/api/gardens",
-        {
-          name: newGardenName,
-          layout: {
-            type: "single-bed",
-            beds: [
-              {
-                width: parseInt(width),
-                length: parseInt(length),
-                plants: [],
-              },
-            ],
-          },
+      const response = await api.post("/api/gardens", {
+        name: newGardenName,
+        layout: {
+          type: "single-bed",
+          beds: [
+            {
+              width: parseInt(width),
+              length: parseInt(length),
+              plants: [],
+            },
+          ],
         },
-        {
-          headers: { "x-auth-token": token },
-        }
-      );
+      });
 
       setGardens([...gardens, response.data]);
       setShowNewGardenForm(false);
@@ -91,16 +85,42 @@ const Dashboard = () => {
       return;
     }
 
-    const token = localStorage.getItem("token");
     try {
-      await axios.delete(`/api/gardens/${gardenId}`, {
-        headers: { "x-auth-token": token },
+      // Use PATCH instead of DELETE since we know PATCH works
+      await api.patch(`/api/gardens/${gardenId}`, {
+        deleted: true,
       });
 
-      setGardens(gardens.filter((garden) => garden._id !== gardenId));
+      // Remove from UI
+      setGardens((prevGardens) =>
+        prevGardens.filter((g) => g._id !== gardenId)
+      );
+
+      // Show success message
+      const successMessage = document.createElement("div");
+      successMessage.className =
+        "fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg z-50";
+      successMessage.textContent = "Garden deleted successfully";
+      document.body.appendChild(successMessage);
+      setTimeout(() => successMessage.remove(), 3000);
     } catch (err) {
-      console.error("Error deleting garden:", err);
-      setError(err.response?.data?.message || "Error deleting garden");
+      console.error("Failed to delete garden:", {
+        error: err,
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        gardenId,
+        gardenName,
+      });
+
+      // Show error message
+      const errorMessage = document.createElement("div");
+      errorMessage.className =
+        "fixed bottom-4 right-4 bg-red-500 text-white px-6 py-3 rounded-xl shadow-lg z-50";
+      errorMessage.textContent =
+        "Failed to delete garden. Please try again later.";
+      document.body.appendChild(errorMessage);
+      setTimeout(() => errorMessage.remove(), 3000);
     }
   };
 
@@ -111,7 +131,6 @@ const Dashboard = () => {
 
   const handleCreateBed = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
 
     try {
       const garden = gardens.find((g) => g._id === selectedGardenId);
@@ -134,12 +153,9 @@ const Dashboard = () => {
         },
       };
 
-      const response = await axios.patch(
+      const response = await api.patch(
         `/api/gardens/${selectedGardenId}`,
-        updatedGarden,
-        {
-          headers: { "x-auth-token": token },
-        }
+        updatedGarden
       );
 
       setGardens(
@@ -390,6 +406,23 @@ const Dashboard = () => {
                 </h3>
                 <p className="text-sm text-gray-600">
                   Browse seeds and plan your planting schedule
+                </p>
+              </div>
+            </Link>
+
+            <Link
+              to="/seed-starting-scheduler"
+              className="group flex items-center gap-4 p-4 rounded-xl border-2 border-transparent hover:border-green-200 hover:bg-green-50 transition-all duration-300"
+            >
+              <div className="flex-shrink-0 w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-all duration-300">
+                <span className="text-2xl">📅</span>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800 group-hover:text-green-700 transition-all duration-300">
+                  Seed Starting Scheduler
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Plan when to start your seeds indoors
                 </p>
               </div>
             </Link>

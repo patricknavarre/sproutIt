@@ -6,7 +6,21 @@ require("dotenv").config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3051",
+      "https://sproutit-frontend.vercel.app",
+      "https://sproutit-backend-n55e.onrender.com",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-auth-token", "Accept"],
+    exposedHeaders: ["x-auth-token"],
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  })
+);
 app.use(express.json());
 
 // MongoDB connection

@@ -8,6 +8,7 @@ import GardenPlanner from "./pages/GardenPlanner";
 import PestAndDiseaseGuide from "./pages/PestAndDiseaseGuide";
 import RecipeSuggestions from "./pages/RecipeSuggestions";
 import SeedDatabase from "./pages/SeedDatabase";
+import SeedStartingScheduler from "./pages/SeedStartingScheduler";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Navbar from "./components/Navbar";
 
@@ -119,6 +120,19 @@ const router = createBrowserRouter([
     element: (
       <Layout>
         <SeedDatabase />
+      </Layout>
+    ),
+    errorElement: (
+      <Layout>
+        <ErrorBoundary />
+      </Layout>
+    ),
+  },
+  {
+    path: "/seed-starting-scheduler",
+    element: (
+      <Layout>
+        <SeedStartingScheduler />
       </Layout>
     ),
     errorElement: (

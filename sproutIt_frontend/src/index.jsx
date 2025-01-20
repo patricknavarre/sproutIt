@@ -5,8 +5,12 @@ import App from "./App";
 import axios from "axios";
 
 // Configure axios defaults
-axios.defaults.baseURL = import.meta.env.VITE_API_URL;
+const baseURL = import.meta.env.VITE_API_URL.trim();
+axios.defaults.baseURL = baseURL;
 axios.defaults.headers.common["Content-Type"] = "application/json";
+axios.defaults.headers.common["Accept"] = "application/json";
+
+console.log("Axios configured with baseURL:", baseURL);
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

@@ -18,7 +18,7 @@ const ZONE_DATA = {
 };
 
 // Planting guidelines relative to last frost date
-const PLANTING_GUIDELINES = {
+export const PLANTING_GUIDELINES = {
   // Leafy Greens
   Lettuce: { weeks: -3, frost: "tolerant" },
   Spinach: { weeks: -4, frost: "tolerant" },
