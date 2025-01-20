@@ -440,6 +440,8 @@ const GardenPlanner = () => {
   const [bedDimensions, setBedDimensions] = useState({ width: 4, length: 8 });
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+  const [showPlantConfirmModal, setShowPlantConfirmModal] = useState(false);
+  const [pendingPlacement, setPendingPlacement] = useState(null);
 
   // Memoize the static data to prevent unnecessary re-renders
   const categories = useMemo(
@@ -619,94 +621,88 @@ const GardenPlanner = () => {
       return;
     }
 
-    console.log("Square clicked:", squareIndex, "in bed:", bedIndex);
-    console.log("Selected plant:", selectedPlantForPlacement);
-
     if (selectedPlantForPlacement) {
-      try {
-        console.log("Attempting to place plant...");
-        const updatedBed = { ...garden.layout.beds[bedIndex] };
-        const x = squareIndex % updatedBed.width;
-        const y = Math.floor(squareIndex / updatedBed.width);
+      const x = squareIndex % garden.layout.beds[bedIndex].width;
+      const y = Math.floor(squareIndex / garden.layout.beds[bedIndex].width);
 
-        console.log("Position:", { x, y });
+      // Check if plot is already occupied
+      const existingPlant = garden.layout.beds[bedIndex].plants?.find(
+        (p) => p.position.x === x && p.position.y === y
+      );
 
-        // Check if plot is already occupied
-        const existingPlant = updatedBed.plants?.find(
-          (p) => p.position.x === x && p.position.y === y
-        );
-        if (existingPlant) {
-          if (
-            !window.confirm(
-              `Replace ${existingPlant.plantName} with ${selectedPlantForPlacement.name}?`
-            )
-          ) {
-            return;
-          }
-          console.log("Replacing existing plant");
-          updatedBed.plants = updatedBed.plants.filter(
-            (p) => p.position.x !== x || p.position.y !== y
-          );
-        }
+      setPendingPlacement({
+        squareIndex,
+        bedIndex,
+        x,
+        y,
+        existingPlant,
+      });
+      setShowPlantConfirmModal(true);
+    }
+  };
 
-        const plantDate = new Date();
-        const harvestDate = addDays(
-          plantDate,
-          selectedPlantForPlacement.daysToMaturity
-        );
+  const handleConfirmPlacement = async () => {
+    if (!pendingPlacement) return;
 
-        const newPlant = {
-          plantId: selectedPlantForPlacement.name,
-          plantName: selectedPlantForPlacement.name,
-          emoji: selectedPlantForPlacement.emoji,
-          daysToMaturity: selectedPlantForPlacement.daysToMaturity,
-          position: { x, y },
-          plantedDate: plantDate.toISOString(),
-          harvestDate: harvestDate.toISOString(),
-          type: selectedPlantForPlacement.type || "annual",
-        };
+    const { squareIndex, bedIndex, x, y, existingPlant } = pendingPlacement;
 
-        console.log("New plant data:", newPlant);
+    try {
+      const updatedBed = { ...garden.layout.beds[bedIndex] };
 
-        const updatedGarden = {
-          ...garden,
-          layout: {
-            ...garden.layout,
-            beds: garden.layout.beds.map((bed, idx) =>
-              idx === bedIndex
-                ? {
-                    ...updatedBed,
-                    plants: [...(updatedBed.plants || []), newPlant],
-                  }
-                : bed
-            ),
-          },
-        };
-
-        console.log("Sending update to server:", updatedGarden);
-        const response = await axios.patch(
-          `/api/gardens/${id}`,
-          updatedGarden,
-          {
-            headers: {
-              "x-auth-token": localStorage.getItem("token"),
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        console.log("Server response:", response.data);
-        setGarden(response.data);
-        setSelectedPlantForPlacement(null);
-      } catch (err) {
-        console.error(
-          "Error placing plant:",
-          err.response?.data || err.message
-        );
-        alert(
-          `Failed to place plant: ${err.response?.data?.message || err.message}`
+      if (existingPlant) {
+        updatedBed.plants = updatedBed.plants.filter(
+          (p) => p.position.x !== x || p.position.y !== y
         );
       }
+
+      const plantDate = new Date();
+      const harvestDate = addDays(
+        plantDate,
+        selectedPlantForPlacement.daysToMaturity
+      );
+
+      const newPlant = {
+        plantId: selectedPlantForPlacement.name,
+        plantName: selectedPlantForPlacement.name,
+        emoji: selectedPlantForPlacement.emoji,
+        daysToMaturity: selectedPlantForPlacement.daysToMaturity,
+        position: { x, y },
+        plantedDate: plantDate.toISOString(),
+        harvestDate: harvestDate.toISOString(),
+        type: selectedPlantForPlacement.type || "annual",
+      };
+
+      const updatedGarden = {
+        ...garden,
+        layout: {
+          ...garden.layout,
+          beds: garden.layout.beds.map((bed, idx) =>
+            idx === bedIndex
+              ? {
+                  ...updatedBed,
+                  plants: [...(updatedBed.plants || []), newPlant],
+                }
+              : bed
+          ),
+        },
+      };
+
+      const response = await axios.patch(`/api/gardens/${id}`, updatedGarden, {
+        headers: {
+          "x-auth-token": localStorage.getItem("token"),
+          "Content-Type": "application/json",
+        },
+      });
+
+      setGarden(response.data);
+      setSelectedPlantForPlacement(null);
+      setShowPlantConfirmModal(false);
+      setPendingPlacement(null);
+    } catch (err) {
+      console.error("Error placing plant:", err.response?.data || err.message);
+      alert(
+        `Failed to place plant: ${err.response?.data?.message || err.message}`
+      );
     }
   };
 
@@ -838,7 +834,11 @@ const GardenPlanner = () => {
   };
 
   const handlePlantClick = (plant) => {
+    setSelectedPlantForPlacement(plant);
     setSelectedPlant(plant.name);
+    if (isMobileView) {
+      setShowMobileMenu(false);
+    }
   };
 
   const formatDateSafely = (dateString) => {
@@ -1406,9 +1406,11 @@ const GardenPlanner = () => {
         {!plantInSquare && selectedPlantForPlacement && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-full h-full flex items-center justify-center bg-green-50/50">
-              <span className="text-3xl animate-bounce-slow">
-                {selectedPlantForPlacement.emoji}
-              </span>
+              {isHovered && (
+                <span className="text-3xl animate-bounce-slow">
+                  {selectedPlantForPlacement.emoji}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -1634,7 +1636,6 @@ const GardenPlanner = () => {
                             onClick={() => handlePlantClick(plant)}
                             draggable
                             onDragStart={(e) => handleDragStart(plant, e)}
-                            onDragEnd={handleDragEnd}
                           >
                             <span className="mr-2">{plant.emoji}</span>
                             <span className="text-sm">{plant.name}</span>
@@ -1742,11 +1743,9 @@ const GardenPlanner = () => {
                                     ? "bg-green-100"
                                     : "hover:bg-green-50"
                                 } active:bg-green-200`}
-                                onClick={() => {
-                                  handlePlantClick(plant);
-                                  setSelectedPlantForPlacement(plant);
-                                  setShowMobileMenu(false);
-                                }}
+                                onClick={() => handlePlantClick(plant)}
+                                draggable
+                                onDragStart={(e) => handleDragStart(plant, e)}
                               >
                                 <span className="text-2xl block mb-1">
                                   {plant.emoji}
@@ -1859,6 +1858,45 @@ const GardenPlanner = () => {
                 className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
               >
                 Create Bed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Plant Confirmation Modal */}
+      {showPlantConfirmModal && pendingPlacement && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 m-4 max-w-sm w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <span className="text-4xl block mb-2">
+                {selectedPlantForPlacement.emoji}
+              </span>
+              <h3 className="text-xl font-semibold text-gray-800">
+                Plant {selectedPlantForPlacement.name}?
+              </h3>
+              {pendingPlacement.existingPlant && (
+                <p className="mt-2 text-red-600 text-sm">
+                  This will replace the existing{" "}
+                  {pendingPlacement.existingPlant.plantName}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowPlantConfirmModal(false);
+                  setPendingPlacement(null);
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmPlacement}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                Plant
               </button>
             </div>
           </div>
